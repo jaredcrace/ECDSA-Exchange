@@ -21,37 +21,42 @@ function printKey(keyMsg, key) {
   });
 }
 
-printKey('key1', key1);
-printKey('key2', key2);
-printKey('key3', key3);
+//printKey('key1', key1);
+//printKey('key2', key2);
+//printKey('key3', key3);
 
 // localhost can have cross origin errors
 // depending on the browser you use!
 app.use(cors());
 app.use(express.json());
 
-const addr1 = key1.getPublic().encode('hex').slice(120,130);
-const addr2 = key2.getPublic().encode('hex');
-const addr3 = key3.getPublic().encode('hex');
-console.log(addr1.length);
+const addr1 = key1.getPublic().encode('hex').slice(128,130);
+const addr2 = key2.getPublic().encode('hex').slice(128,130);
+const addr3 = key3.getPublic().encode('hex').slice(128,130);
+
 
 const balances = {
-  addr1: 100,
-  addr2: 50,
-  addr3: 75,
+  ['_' + addr1]: 100,
+  ['_' + addr2]: 50,
+  ['_' + addr3]: 75,
 }
+
+console.log(balances);
 
 app.get('/balance/:address', (req, res) => {
   const {address} = req.params;
-  const balance = balances[address] || 0;
+  var addr = '_' + address;
+  const balance = balances[addr] || 0;
   res.send({ balance });
 });
 
 app.post('/send', (req, res) => {
   const {sender, recipient, amount} = req.body;
-  balances[sender] -= amount;
-  balances[recipient] = (balances[recipient] || 0) + +amount;
-  res.send({ balance: balances[sender] });
+  var addr_sender = '_' + sender;
+  var addr_recipient = '_' + recipient;
+  balances[addr_sender] -= amount;
+  balances[addr_recipient] = (balances[addr_recipient] || 0) + +amount;
+  res.send({ balance: balances[addr_sender] });
 });
 
 app.listen(port, () => {
