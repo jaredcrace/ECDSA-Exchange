@@ -1,4 +1,5 @@
 const express = require('express');
+const SHA256 = require('crypto-js/sha256');
 
 const app = express();
 const cors = require('cors');
@@ -6,17 +7,6 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
 const port = 3042;
-
-
-function printKey(keyMsg, key) {
-  console.log(`key msg: ${keyMsg}`)
-  console.log({
-    privateKey: key.getPrivate().toString(16),
-    publicX: key.getPublic().x.toString(16),
-    publicY: key.getPublic().y.toString(16),
-    public: key.getPublic().encode('hex')
-  });
-}
 
 // localhost can have cross origin errors
 // depending on the browser you use!
@@ -31,7 +21,13 @@ class Wallet {
   }
 
   print(){
-    console.log(this.key, this.address, this.amount);
+    console.log({
+      address: this.address,
+      amount: this.amount,
+      privateKey: this.key.getPrivate().toString(16),
+      publicX: this.key.getPublic().x.toString(16),
+      publicY: this.key.getPublic().y.toString(16),
+    });
   }
 }
 
@@ -97,9 +93,36 @@ class Exchange {
     return;
   }
 
+  verifySignature(address, sigR, sigS, amount) {
+    if(!this.isValidWalletAddress(address)){
+      return;
+    }
+    for(var i=0; i<this.walletObjList.length; i++){
+      if(address == this.walletObjList[i].address) {
+
+        var wallet = this.walletObjList[i];
+        var msgHash = SHA256(amount).toString();
+        const signature = {
+          r: sigR,
+          s: sigS
+        };
+
+        if(wallet.key.verify(msgHash, signature)){
+          console.log('signature SUCCESS');
+          return true;
+        }
+        else {
+          console.log('signature has failed');
+          return false;
+        }
+      }
+    }
+    return;
+  }
+
   printVerbose() {
     for(var i=0; i<this.walletObjList.length; i++) {
-      console.log(this.walletObjList[i]);
+      this.walletObjList[i].print();
     }
     console.log(this.walletStrList);
   }
@@ -124,9 +147,14 @@ app.get('/balance/:address', (req, res) => {
 });
 
 app.post('/send', (req, res) => {
-  const {sender, recipient, signature, amount} = req.body;
+  const {sender, recipient, sigR, sigS, amount} = req.body;
 
   if(!EXCHANGE.isValidWalletAddress(sender) || !EXCHANGE.isValidWalletAddress(recipient)){
+    return;
+  }
+
+  // verify signature of sender
+  if(!EXCHANGE.verifySignature(sender, sigR, sigS, amount)){
     return;
   }
 

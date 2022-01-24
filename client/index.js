@@ -18,13 +18,14 @@ document.getElementById("exchange-address").addEventListener('input', ({ target:
 document.getElementById("transfer-amount").addEventListener('click', () => {
   const sender = document.getElementById("exchange-address").value;
   const amount = document.getElementById("send-amount").value;
-  const signature = document.getElementById("send-signature").value;
+  const sigR = document.getElementById("send-sig-r").value;
+  const sigS = document.getElementById("send-sig-s").value;
   const recipient = document.getElementById("recipient").value;
 
-  console.log(`111from client: ${signature}`);
+  console.log(`sigR: ${sigR}, sigS: ${sigS}`);
 
   const body = JSON.stringify({
-    sender, amount, signature, recipient
+    sender, amount, sigR, sigS, recipient
   });
 
   const request = new Request(`${server}/send`, { method: 'POST', body });
